@@ -11,9 +11,9 @@
         <relativePath/> <!-- lookup parent from repository -->
     </parent>
     <groupId>com.example</groupId>
-    <artifactId>ToDoApp</artifactId>
+    <artifactId>taskmanagement</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>ToDoApp</name>
+    <name>TaskManagement</name>
     <description>Demo project for Spring Boot</description>
 
     <properties>
