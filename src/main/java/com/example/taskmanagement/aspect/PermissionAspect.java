@@ -1,5 +1,7 @@
 package com.example.taskmanagement.aspect;
 
+import com.example.taskmanagement.service.UserService;
+import com.example.taskmanagement.entity.User;
 import com.example.taskmanagement.annotation.RequiresPermission;
 import com.example.taskmanagement.annotation.RequiresRole;
 import com.example.taskmanagement.service.RBACService;
@@ -19,6 +21,9 @@ import org.springframework.stereotype.Component;
 public class PermissionAspect {
 	@Autowired
     private RBACService rbacService;
+	
+	@Autowired
+    private UserService userService;
     
     @Around("@annotation(requiresPermission)")
     public Object checkPermission(ProceedingJoinPoint joinPoint, RequiresPermission requiresPermission) throws Throwable {
@@ -29,11 +34,14 @@ public class PermissionAspect {
         }
         
         String username = authentication.getName();
-        Long userId = getUserIdByUsername(username); 
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            throw new SecurityException("Kullanıcı bulunamadı: " + username);
+        }
         
         PermissionName requiredPermission = requiresPermission.value();
         
-        if (!rbacService.hasPermission(userId, requiredPermission)) {
+        if (!rbacService.hasPermission(user.getId(), requiredPermission)) {
             throw new SecurityException("Bu işlem için yetkiniz bulunmamaktadır: " + requiredPermission);
         }
         
@@ -49,31 +57,28 @@ public class PermissionAspect {
         }
         
         String username = authentication.getName();
-        Long userId = getUserIdByUsername(username);
+        User user = userService.findByUsername(username);
+        if (user == null) {
+            throw new SecurityException("Kullanıcı bulunamadı: " + username);
+        }
         
         RoleName[] requiredRoles = requiresRole.value();
         
-        boolean hasRole = false;
-        for (RoleName roleName : requiredRoles) {
-            if (checkUserHasRole(userId, roleName)) {
-                hasRole = true;
-                break;
-            }
-        }
+        boolean hasRole = user.getRoles().stream()
+                .anyMatch(role -> {
+                    for (RoleName requiredRole : requiredRoles) {
+                        if (role.getName().equals(requiredRole)) {
+                            return true;
+                        }
+                    }
+                    return false;
+                });
         
         if (!hasRole) {
             throw new SecurityException("Bu işlem için gerekli role sahip değilsiniz");
         }
         
         return joinPoint.proceed();
-    }
-    
-    private Long getUserIdByUsername(String username) {
-        return 1L; 
-    }
-    
-    private boolean checkUserHasRole(Long userId, RoleName roleName) {
-        return true; 
     }
     
 }
