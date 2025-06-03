@@ -16,7 +16,7 @@ import java.util.function.Function;
 @Service
 public class JwtService {
     
-    @Value("${jwt.secret:yourSecretKey}")
+    @Value("${jwt.secret:yourSecretkey}")
     private String secret;
     
     @Value("${jwt.expiration:86400000}") 
