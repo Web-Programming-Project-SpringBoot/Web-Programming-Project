@@ -15,28 +15,28 @@ import java.util.function.Function;
 
 @Service
 public class JwtService {
-    
 
-    @Value("${jwt.secret:yourSecretkey}")
+    @Value("${jwt.secret:yourSecretKey}")
+
     private String secret;
-    
-    @Value("${jwt.expiration:86400000}") 
+
+    @Value("${jwt.expiration:86400000}")
     private Long expiration;
-    
+
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(secret.getBytes());
     }
-    
+
     public String generateToken(UserDetails userDetails) {
         Map<String, Object> claims = new HashMap<>();
         return createToken(claims, userDetails.getUsername());
     }
-    
+
     public String generateToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         return generateToken(userDetails);
     }
-    
+
     private String createToken(Map<String, Object> claims, String subject) {
         return Jwts.builder()
                 .setClaims(claims)
@@ -46,20 +46,20 @@ public class JwtService {
                 .signWith(getSigningKey(), SignatureAlgorithm.HS256)
                 .compact();
     }
-    
+
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
-    
+
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
-    
+
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
     }
-    
+
     private Claims extractAllClaims(String token) {
         return Jwts.parserBuilder()
                 .setSigningKey(getSigningKey())
@@ -67,22 +67,22 @@ public class JwtService {
                 .parseClaimsJws(token)
                 .getBody();
     }
-    
+
     public boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
-    
+
     public boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
-    
+
     public boolean validateToken(String token) {
         try {
             Jwts.parserBuilder()
-                .setSigningKey(getSigningKey())
-                .build()
-                .parseClaimsJws(token);
+                    .setSigningKey(getSigningKey())
+                    .build()
+                    .parseClaimsJws(token);
             return true;
         } catch (JwtException | IllegalArgumentException e) {
             return false;
