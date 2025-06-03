@@ -26,6 +26,14 @@ public class UserService {
 		return userRepository.findAllWithRoles();
 	}
 	
+	public Optional<User> findById(Long id) {
+        return userRepository.findById(id);
+    }
+    
+    public List<User> findAll() {
+        return userRepository.findAll();
+    }
+	
 	public User getUserById(long id) {
         return userRepository.findByIdWithRoles(id)
                 .orElseThrow(() -> new RuntimeException("Kullanici bulunamadi id: " + id));
