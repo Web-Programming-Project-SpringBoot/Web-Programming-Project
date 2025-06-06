@@ -7,7 +7,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
-import java.util.Optional;
+
 import com.example.taskmanagement.entity.Permission;
 import com.example.taskmanagement.entity.PermissionName;
 
@@ -21,3 +21,4 @@ public interface PermissionRepository extends JpaRepository<Permission, Long> {
     @Query("SELECT p FROM Permission p JOIN p.roles r WHERE r.name = :roleName")
     List<Permission> findByRoleName(@Param("roleName") String roleName);
 }
+
