@@ -31,6 +31,17 @@ public class TaskController {
         response.put("tasks", tasks);
         return ResponseEntity.ok(response);
     }
+    
+    @GetMapping("/{taskId}")
+    @RequiresPermission(PermissionName.READ_TASK)
+    public ResponseEntity<Map<String, Object>> getTaskById(@PathVariable Long taskId) {
+        Task task = taskService.getTaskById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found with id: " + taskId));
+        Map<String, Object> response = new HashMap<>();
+        response.put("message", "Görev başarıyla getirildi");
+        response.put("task", task);
+        return ResponseEntity.ok(response);
+    }
 
     @PostMapping
     @RequiresPermission(PermissionName.CREATE_TASK)
