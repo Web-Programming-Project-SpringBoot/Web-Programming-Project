@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>User Roles Management</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body>
+
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-primary">
+  <div class="container">
+    <a class="navbar-brand" href="#">Task Management</a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav" 
+      aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+      <ul class="navbar-nav">
+        <li class="nav-item"><a class="nav-link" href="dashboard.html">Dashboard</a></li>
+        <li class="nav-item"><a class="nav-link" href="users.html">Users</a></li>
+        <li class="nav-item"><a class="nav-link active" href="userroles.html">User Roles</a></li>
+        <li class="nav-item"><a class="nav-link" href="tasks.html">Tasks</a></li>
+        <li class="nav-item"><a class="nav-link" href="profile.html">Profile</a></li>
+        <li class="nav-item"><a class="nav-link" href="logout.html">Logout</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<!-- Main Content -->
+<div class="container mt-5">
+  <h2 class="mb-4">User Roles Management</h2>
+
+  <div class="row">
+    <!-- Users List -->
+    <div class="col-md-4">
+      <h5>Users</h5>
+      <ul class="list-group" id="userList" style="max-height: 400px; overflow-y: auto;">
+        <!-- User items inserted dynamically -->
+      </ul>
+    </div>
+
+    <!-- Roles Detail & Edit -->
+    <div class="col-md-8">
+      <h5>User Roles</h5>
+      <div id="rolesSection" style="display:none;">
+        <p><strong>User:</strong> <span id="selectedUsername"></span></p>
+
+        <ul class="list-group mb-3" id="roleList">
+          <!-- User roles dynamically listed here -->
+        </ul>
+
+        <div class="mb-3">
+          <label for="roleSelect" class="form-label">Assign New Role</label>
+          <select id="roleSelect" class="form-select">
+            <!-- Roles options loaded dynamically -->
+          </select>
+        </div>
+        <button id="assignRoleBtn" class="btn btn-success">Assign Role</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // API base url
+  const API_BASE = "/api/rbac";
+
+  let users = [];
+  let roles = [];
+  let selectedUserId = null;
+
+  // Fetch all users from backend
+  async function fetchUsers() {
+    const res = await fetch(`${API_BASE}/users`);
+    const data = await res.json();
+    if(data.success) {
+      users = data.users;
+      renderUserList();
+    } else {
+      alert("Failed to fetch users: " + data.error);
+    }
+  }
+
+  // Fetch all roles from backend
+  async function fetchRoles() {
+    const res = await fetch(`${API_BASE}/roles`);
+    const data = await res.json();
+    if(data.success) {
+      roles = data.roles;
+      renderRoleOptions();
+    } else {
+      alert("Failed to fetch roles: " + data.error);
+    }
+  }
+
+  // Render user list in sidebar
+  function renderUserList() {
+    const userList = document.getElementById('userList');
+    userList.innerHTML = '';
+    users.forEach(user => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item list-group-item-action';
+      li.textContent = user.username;
+      li.style.cursor = 'pointer';
+      li.onclick = () => selectUser(user.id, user.username);
+      userList.appendChild(li);
+    });
+  }
+
+  // When user clicked, load his roles
+  async function selectUser(userId, username) {
+    selectedUserId = userId;
+    document.getElementById('selectedUsername').textContent = username;
+    document.getElementById('rolesSection').style.display = 'block';
+
+    // Fetch user's roles (by calling getUserPermissions or getUserRoles API)
+    // Since backend controller doesn't have direct getUserRoles, we can fetch from user entity
+    // Assuming user.roles is returned with users endpoint, otherwise you'd need new endpoint.
+
+    // Find selected user in users array
+    const user = users.find(u => u.id === userId);
+    if(user && user.roles) {
+      renderRoleList(user.roles);
+    } else {
+      // fallback: empty list
+      renderRoleList([]);
+    }
+  }
+
+  // Render roles assigned to user
+  function renderRoleList(userRoles) {
+    const roleList = document.getElementById('roleList');
+    roleList.innerHTML = '';
+
+    if(userRoles.length === 0) {
+      roleList.innerHTML = '<li class="list-group-item">No roles assigned</li>';
+      return;
+    }
+
+    userRoles.forEach(role => {
+      const li = document.createElement('li');
+      li.className = 'list-group-item d-flex justify-content-between align-items-center';
+      li.textContent = role.name;
+
+      // Remove role button
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-sm btn-danger';
+      btn.textContent = 'Remove';
+      btn.onclick = () => removeRole(role.name);
+
+      li.appendChild(btn);
+      roleList.appendChild(li);
+    });
+  }
+
+  // Render role options in select dropdown
+  function renderRoleOptions() {
+    const select = document.getElementById('roleSelect');
+    select.innerHTML = '<option value="">Select role</option>';
+    roles.forEach(role => {
+      const option = document.createElement('option');
+      option.value = role.name;
+      option.textContent = role.displayName || role.name;
+      select.appendChild(option);
+    });
+  }
+
+  // Assign new role to selected user
+  async function assignRole() {
+    const roleName = document.getElementById('roleSelect').value;
+    if(!selectedUserId) {
+      alert('Please select a user first');
+      return;
+    }
+    if(!roleName) {
+      alert('Please select a role to assign');
+      return;
+    }
+
+    const res = await fetch(`${API_BASE}/user/${selectedUserId}/assign-role`, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({roleName})
+    });
+    const data = await res.json();
+    if(data.success) {
+      alert('Role assigned successfully');
+      // Refresh user roles from backend or update locally
+      // For simplicity, update locally:
+      const user = users.find(u => u.id === selectedUserId);
+      if(user) {
+        if(!user.roles) user.roles = [];
+        // Avoid duplicates
+        if(!user.roles.some(r => r.name === roleName)) {
+          user.roles.push({name: roleName});
+        }
+        renderRoleList(user.roles);
+      }
+    } else {
+      alert('Error assigning role: ' + data.error);
+    }
+  }
+
+  // Remove role from user
+  async function removeRole(roleName) {
+    if(!selectedUserId) return;
+
+    if(!confirm(`Remove role "${roleName}" from user?`)) return;
+
+    const res = await fetch(`${API_BASE}/user/${selectedUserId}/remove-role/${roleName}`, {
+      method: 'DELETE',
+    });
+    const data = await res.json();
+    if(data.success) {
+      alert('Role removed successfully');
+      // Update local roles
+      const user = users.find(u => u.id === selectedUserId);
+      if(user && user.roles) {
+        user.roles = user.roles.filter(r => r.name !== roleName);
+        renderRoleList(user.roles);
+      }
+    } else {
+      alert('Error removing role: ' + data.error);
+    }
+  }
+
+  // Events
+  document.getElementById('assignRoleBtn').addEventListener('click', assignRole);
+
+  // Initial load
+  fetchUsers();
+  fetchRoles();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
